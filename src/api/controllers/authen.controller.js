@@ -6,29 +6,28 @@ module.exports = that = {
         try {
 
         } catch (error) {
-
+            console.error(error.message)
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
-
     ,
+
     login: async (req, res) => {
         try {
             const { username, password } = req.body;
             const result = await authService.login(username, password);
+            const { code, message, success } = result;
 
-            if (!result.success) {
-                return res.status(result.code).json({
-                    code: result.code,
-                    message: result.message,
-                })
-            }
-            return res.status(result.code).json({
-                code: result.code,
-                message: result.message,
-                user: result.user
-            })
+            return res.status(code).json(
+                {
+                    code,
+                    status: success,
+                    message,
+                }
+            )
         } catch (error) {
-            console.log(err.message)
+            console.error(error.message)
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
     ,
@@ -41,20 +40,20 @@ module.exports = that = {
             } = req.body;
 
             const result = await authService.register(username, password);
-            console.log(`result:: ${result}`)
+            const { code, message, success } = result;
 
-            if (!result.success) {
-                return res.status(400).json(
+            if (!success) {
+                return res.status(code).json(
                     {
-                        message: result.message,
-                        status: result.status
+                        message: message,
+                        status: success
                     }
                 );
             }
 
-            res.status(200).json(
+            return res.status(code).json(
                 {
-                    message: result.message,
+                    message: message,
                     status: true,
                     links: {
                         "login": {
@@ -69,8 +68,9 @@ module.exports = that = {
                 }
             );
 
-        } catch (err) {
-            console.log(err.message)
+        } catch (error) {
+            console.error(error.message)
+            res.status(500).json({ error: 'Internal server error' });
         }
     }
     ,
@@ -84,6 +84,7 @@ module.exports = that = {
                 user
             })
         } catch (error) {
+            console.error(error.message)
             res.status(500).json({ error: 'Internal server error' });
         }
     },

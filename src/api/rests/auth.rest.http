@@ -1,0 +1,24 @@
+@baseUrl = http://localhost:3000/api/auth
+
+
+
+### Register User
+POST {{baseUrl}}/regis
+Content-Type: application/json
+
+{
+  "username": "phamthanhdat16032004@gmail.com",
+  "password": "dat123A@"
+}
+
+### login User
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "username": "phamthanhdat16032004@gmail.com",
+  "password": "dat123A@"
+}
+
+
+### login with google 

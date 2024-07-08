@@ -1,4 +1,7 @@
+
+
 const passport = require('../../config/passport');
+const sanitize = require('mongo-sanitize');
 const bcrypt = require('bcrypt');
 const _User = require('../models/user.model');
 const { isValidEmailorPhone, isValidPassword } = require('../validations/authen.validation');
@@ -9,97 +12,67 @@ module.exports = that = {
 
     login: async (username, password) => {
         try {
-            const user = await _User.findOne({ username });
+            const query = { username, password }
+            const sanitizedUsername = sanitize(query.username);
+            const userExists = await _User.findOne({ username: sanitizedUsername });
 
-            if (!user) {
-                return {
-                    code: 401,
-                    success: false,
-                    message: 'tai khoan matkhau ko dung.'
-                }
-            }
-            if (!user.isAcctive) {
-                const otp = await otpService.createOpt(username);
-                await otpService.sendOtpToUser(otp, username);
-                return {
-                    code: 401,
-                    success: false,
-                    message: 'tai khoan chua dc active',
-                }
+            if (!userExists) {
+                return createResponse(401, "tai khoan ko ton tai", false);
             }
 
-            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!userExists.isAcctive) {
+                handleInactiveUser(username);
+                return createResponse(401, "tai khoan chua kich hoat", false)
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, userExists.password);
             if (!isPasswordValid) {
-                return {
-                    code: 401,
-                    message: 'Invalid username or password.',
-                    success: false
-                };
-            }
-            return {
-                code: 200,
-                success: false,
-                message: 'dang nhap thanh cong',
-                user
+                return createResponse(401, "tai khoan mat khau ko dung", false);
             }
 
+            return createResponse(200, "dang nhap thanh cong", true);
         } catch (error) {
-            console.log(err)
+            console.error(error.message)
+            return createResponse(500, error.message, false)
         }
     }
     ,
+
     register: async (username, password) => {
 
-        if (!isValidEmailorPhone(username)) {
-            return {
-                success: false,
-                message: 'Invalid username format. Must be a valid email or phone number.'
-            };
-        }
+        if (!isValidEmailorPhone(username)) return createResponse(401, "Invalid username format. Must be a valid email or phone number.", false);
+        if (!isValidPassword(password)) return createResponse(401, "mat khau phai tu 8 ki tu bao gom ki tu dac biet", false);
 
-        if (!isValidPassword(password)) {
-            return {
-                success: false,
-                message: 'Password '
-            };
-        }
         try {
 
-            const isExist = await _User.findOne({ username });
-            if (isExist) {
-                return {
-                    success: false,
-                    message: 'Username already exists.'
-                }
-            };
+            const userExists = await _User.findOne({ username });
+            if (userExists) return createResponse(401, "Username already exists.", false);
 
             await createAccount(username, password);
             const otp = await otpService.createOpt(username);
-            console.log(`otp::${otp}`)
             await otpService.sendOtpToUser(otp, username);
-            return {
-                success: true,
-                message: 'register sucessfull!'
-            }
+            return createResponse(200, "register sucessfull!", true);
 
         } catch (error) {
             console.log(error.message);
+            return createResponse(500, error.message, false);
         }
     }
     ,
-    // authenticateGoogleCallback: async () => {
-    //     return new Promise((resolve, reject) => {
-    //         passport.authenticate('google', (err, user, info) => {
-    //             if (err) {
-    //                 return reject(err);
-    //             }
-    //             if (!user) {
-    //                 return reject(new Error('Authentication failed'));
-    //             }
-    //             resolve(user);
-    //         })(req, res, resolve);
-    //     });
-    // }
+
+    authenticateGoogleCallback: async () => {
+        return new Promise((resolve, reject) => {
+            passport.authenticate('google', (error, user) => {
+                if (error) {
+                    return reject(error);
+                }
+                if (!user) {
+                    return reject(new Error('Authentication failed'));
+                }
+                resolve(user);
+            })(req, res, resolve);
+        });
+    }
 };
 
 
@@ -112,6 +85,24 @@ async function createAccount(username, password) {
         console.log('User saved successfully:', newUser);
     } catch (error) {
         console.error('Error creating user:', error);
+        return error
+    }
+}
+
+async function handleInactiveUser(username) {
+    try {
+        const otp = await otpService.createOpt(username)
+        await otpService.sendOtpToUser(otp, username);
+    } catch (error) {
+        console.error('Error handling inactive user:', error.message);
+    }
+}
+
+function createResponse(code, message, status) {
+    return {
+        code: code,
+        message: message,
+        success: status
     }
 }
 
