@@ -10,9 +10,11 @@ module.exports = that = {
     createOpt: async (username) => {
         try {
             const isExistUser = _User.findOne({ username });
-            if (!isExistUser) return {
-                success: false,
-                message: "user ko tonf taij trong he thong",
+            if (!isExistUser) {
+                return {
+                    success: false,
+                    message: "user ko tonf taij trong he thong",
+                }
             }
             const otp = otpGenerator.generate(6,
                 {
@@ -21,7 +23,7 @@ module.exports = that = {
                     upperCase: false,
                     specialChars: false
                 });
-            console.log(`otp ::${otp}`);
+
             const salt = await bcrypt.genSalt(10);
             const hashOtp = await bcrypt.hash(otp, salt);
             const Otp = await _Otp.create({
@@ -29,28 +31,39 @@ module.exports = that = {
                 otp: hashOtp
             });
             return otp;
-        } catch (err) {
-            console.log(err)
+        } catch (error) {
+            console.error(error.message)
+            return error
         }
     }
     ,
-    verifyOtp: async () => {
-
+    verifyOtp: async (username, otp) => {
+        try {
+            const isExist = _Otp.findOne({ username, otp });
+            if (!isExist) {
+                return {
+                    msg: "otp khong dung"
+                }
+            }
+        } catch (error) {
+            console.error(error.message);
+            return error
+        }
     }
     ,
     sendOtpToUser: async (otp, username) => {
         if (isEmail(username)) {
-            sendOtpFromEmail(username,otp);
+            return sendOtpFromEmail(username, otp);
         }
         if (isPhone(username)) {
-            sendOtpFromPhoneNumber();
+            return sendOtpFromPhoneNumber(username, otp);
         }
 
     }
 }
 
-function sendOtpFromEmail(username,otp) {
-    const mailOptions = getMailOptions(username,otp);
+function sendOtpFromEmail(email, otp) {
+    const mailOptions = getMailOptions(email, otp);
     let mailTransporter = nodemailer
         .createTransport(
             transporter
@@ -63,6 +76,6 @@ function sendOtpFromEmail(username,otp) {
     });
 }
 
-function sendOtpFromPhoneNumber() {
+function sendOtpFromPhoneNumber(phoneNumber, otp) {
 
 }

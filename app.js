@@ -4,7 +4,7 @@ const passport = require('./src/config/passport');
 const routes = require('./src/api/routers');
 const bodyParser = require('body-parser');
 const app = express();
-require('dotenv').config()
+require('dotenv').config();
 require('./src/api/helpers/connections_mongdb')
 
 

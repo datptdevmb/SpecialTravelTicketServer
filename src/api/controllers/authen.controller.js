@@ -2,36 +2,35 @@
 const authService = require('../services/authen.service');
 
 module.exports = that = {
-    generateToken: () => {
-        try {
 
+    generateToken: async () => {
+        try {
+            const accessToken = await authService.generateToken();
         } catch (error) {
-            console.error(error.message)
+            console.error(error.message);
             res.status(500).json({ error: 'Internal server error' });
         }
     }
     ,
-
     login: async (req, res) => {
         try {
             const { username, password } = req.body;
             const result = await authService.login(username, password);
-            const { code, message, success } = result;
+            const { code, smg, status } = result;
 
             return res.status(code).json(
                 {
                     code,
-                    status: success,
-                    message,
+                    status,
+                    smg,
                 }
             )
         } catch (error) {
-            console.error(error.message)
+            console.error(error.message);
             res.status(500).json({ error: 'Internal server error' });
         }
     }
     ,
-
     register: async (req, res) => {
         try {
             const {
@@ -40,41 +39,33 @@ module.exports = that = {
             } = req.body;
 
             const result = await authService.register(username, password);
-            const { code, message, success } = result;
-
-            if (!success) {
-                return res.status(code).json(
-                    {
-                        message: message,
-                        status: success
-                    }
-                );
-            }
+            const { code, smg, status } = result;
 
             return res.status(code).json(
                 {
-                    message: message,
-                    status: true,
-                    links: {
-                        "login": {
-                            "url": "http://localhost:3000/auth/login",
-                            "method": "post",
-                            "param": {
-                                "username": "exam@gmail.com",
-                                "password": "password123"
+                    smg,
+                    status,
+                    links: status
+                        ? {
+                            "login": {
+                                "url": "http://localhost:3000/auth/login",
+                                "method": "post",
+                                "param": {
+                                    "username": "exam@gmail.com",
+                                    "password": "password123"
+                                }
                             }
                         }
-                    }
+                        : []
                 }
             );
 
         } catch (error) {
-            console.error(error.message)
+            console.error(error.message);
             res.status(500).json({ error: 'Internal server error' });
         }
     }
     ,
-
     googleCallback: async (req, res) => {
         try {
             const user = await authService
@@ -84,7 +75,7 @@ module.exports = that = {
                 user
             })
         } catch (error) {
-            console.error(error.message)
+            console.error(error.message);
             res.status(500).json({ error: 'Internal server error' });
         }
     },

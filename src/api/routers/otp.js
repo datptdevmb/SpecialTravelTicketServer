@@ -1,7 +1,8 @@
 const express = require('express');
 const otpRoute = express.Router();
-const optService = require('../services/otp.service');
+const otpController = require('../controllers/otp.controller');
 
-otpRoute.post('/createOtp',optService.createOpt)
+otpRoute.post('/createOtp', otpController.createOpt);
+otpRoute.post('/verifyOtp',otpController.verifyOtp);
 
 module.exports = otpRoute

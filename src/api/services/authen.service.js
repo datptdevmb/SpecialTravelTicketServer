@@ -6,9 +6,24 @@ const bcrypt = require('bcrypt');
 const _User = require('../models/user.model');
 const { isValidEmailorPhone, isValidPassword } = require('../validations/authen.validation');
 const otpService = require('./otp.service');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 
 module.exports = that = {
+
+    generateToken: async (userId) => {
+        const payload = { userId };
+        const options = {
+            expiresIn: '1h'
+        }
+        const secretKey = process.env.SECRETKEY;
+        await jwt.sign(payload, secretKey, options,
+            (error, token) => {
+                if (error) return error
+                return token;
+            })
+    },
 
     login: async (username, password) => {
         try {
@@ -40,9 +55,12 @@ module.exports = that = {
 
     register: async (username, password) => {
 
-        if (!isValidEmailorPhone(username)) return createResponse(401, "Invalid username format. Must be a valid email or phone number.", false);
-        if (!isValidPassword(password)) return createResponse(401, "mat khau phai tu 8 ki tu bao gom ki tu dac biet", false);
-
+        if (!isValidEmailorPhone(username)) {
+            return createResponse(401, "Invalid username format. Must be a valid email or phone number.", false);
+        }
+        if (!isValidPassword(password)) {
+            return createResponse(401, "mat khau phai tu 8 ki tu bao gom ki tu dac biet", false);
+        }
         try {
 
             const userExists = await _User.findOne({ username });
@@ -54,7 +72,7 @@ module.exports = that = {
             return createResponse(200, "register sucessfull!", true);
 
         } catch (error) {
-            console.log(error.message);
+            console.error(error.message);
             return createResponse(500, error.message, false);
         }
     }
@@ -101,8 +119,8 @@ async function handleInactiveUser(username) {
 function createResponse(code, message, status) {
     return {
         code: code,
-        message: message,
-        success: status
+        smg: message,
+        status: status
     }
 }
 
