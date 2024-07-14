@@ -1,13 +1,14 @@
 const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
 const otpGenerator = require('otp-generator');
 const _Otp = require('../models/otp.model');
 const _User = require('../models/user.model');
-const { isEmail, isPhone } = require('../validations/authen.validation');
-const { getMailOptions, transporter } = require('../../config/nodemailer.config');
+const { sendOtpEmail } = require('../helpers/email.helper');
+const { sendOtpSms } = require('../helpers/sms.helper');
+
+
 module.exports = that = {
 
-    createOpt: async (username) => {
+    createOpt: async (username, method) => {
         try {
             const isExistUser = _User.findOne({ username });
             if (!isExistUser) {
@@ -22,60 +23,38 @@ module.exports = that = {
                     alphabets: false,
                     upperCase: false,
                     specialChars: false
-                });
+                }
+            );
 
             const salt = await bcrypt.genSalt(10);
             const hashOtp = await bcrypt.hash(otp, salt);
-            const Otp = await _Otp.create({
+            await _Otp.create({
                 username,
                 otp: hashOtp
             });
-            return otp;
+            if (method === 'email') {
+                console.log('dddd');
+                await sendOtpEmail(username, otp);
+            } else if (method === 'sms') {
+                await sendOtpSms(isExistUser.phone, otp);
+            }
+
+            return {
+                success: true,
+                message: "OTP đã được gửi"
+            };
+
         } catch (error) {
             console.error(error.message)
-            return error
+            return {
+                success: false,
+                message: "Lỗi khi tạo OTP",
+                error: error.message
+            };
         }
     }
     ,
-    verifyOtp: async (username, otp) => {
-        try {
-            const isExist = _Otp.findOne({ username, otp });
-            if (!isExist) {
-                return {
-                    msg: "otp khong dung"
-                }
-            }
-        } catch (error) {
-            console.error(error.message);
-            return error
-        }
-    }
-    ,
-    sendOtpToUser: async (otp, username) => {
-        if (isEmail(username)) {
-            return sendOtpFromEmail(username, otp);
-        }
-        if (isPhone(username)) {
-            return sendOtpFromPhoneNumber(username, otp);
-        }
+    verifyOtp: async (username,otp) => {
 
     }
-}
-
-function sendOtpFromEmail(email, otp) {
-    const mailOptions = getMailOptions(email, otp);
-    let mailTransporter = nodemailer
-        .createTransport(
-            transporter
-        );
-    mailTransporter.sendMail(mailOptions, (error, info) => {
-        if (error) {
-            return console.log('Error sending email:', error);
-        }
-        console.log('Email sent:', info.response);
-    });
-}
-
-function sendOtpFromPhoneNumber(phoneNumber, otp) {
-
 }

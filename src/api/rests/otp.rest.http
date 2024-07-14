@@ -1,0 +1,10 @@
+@baseUrl = http://localhost:3000/api/otp
+
+
+POST {{baseUrl}}/createOtp
+Content-Type: application/json
+
+{
+  "username": "phamthanhdat16032004@gmail.com",
+  "method":"email"
+}

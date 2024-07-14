@@ -17,11 +17,6 @@ const UserSchema = new Schema(
         {
             type: String,
         },
-        isAcctive:
-        {
-            type: Boolean,
-            default: false
-        },
         email: {
             type: String
         },
